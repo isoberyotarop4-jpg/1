@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Tohoku University App</title>
+    <style>
+        :root {
+            --tu-purple: #420a8d; /* より正確な東北大パープル */
+            --tu-light-purple: #7443b5;
+            --bg-gray: #f2f2f7;
+            --safe-top: env(safe-area-inset-top);
+        }
+
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "Hiragino Kaku Gothic ProN", sans-serif;
+            background-color: white;
+            color: #333;
+            -webkit-tap-highlight-color: transparent;
+            overflow-x: hidden;
+        }
+
+        /* --- 1. ポータル画面 --- */
+        .portal {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        .portal-header {
+            padding-top: var(--safe-top);
+            padding-left: 20px;
+            padding-right: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 15px;
+        }
+
+        .user-meta {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .tu-logo-icon {
+            width: 55px;
+            height: 55px;
+            background-color: var(--tu-purple);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 8px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .user-text b { color: var(--tu-purple); font-size: 1.1rem; }
+        .user-text p { margin: 2px 0 0; font-size: 0.85rem; color: var(--tu-purple); }
+
+        .id-btn {
+            text-align: center;
+            cursor: pointer;
+        }
+        .id-btn img { width: 32px; height: 32px; }
+        .id-btn span { display: block; font-size: 0.7rem; color: var(--tu-purple); font-weight: bold; margin-top: 4px; }
+
+        .tabs {
+            display: flex;
+            border-bottom: 2px solid #ddd;
+            margin-top: 20px;
+        }
+        .tab {
+            padding: 10px 20px;
+            font-size: 0.9rem;
+            font-weight: bold;
+            color: #666;
+        }
+        .tab.active {
+            color: var(--tu-purple);
+            border-bottom: 3px solid var(--tu-purple);
+        }
+
+        /* お知らせセクション */
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            margin-top: 10px;
+        }
+        .section-header h3 {
+            margin: 0;
+            font-size: 1.3rem;
+            color: #333;
+            border-left: 5px solid var(--tu-purple);
+            padding-left: 10px;
+        }
+        .more-btn {
+            background: var(--tu-purple);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 0;
+            color: #999;
+        }
+        .empty-state img { width: 40px; opacity: 0.3; margin-bottom: 10px; }
+
+        /* 下部ナビゲーション */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            height: 90px;
+            background: var(--tu-purple);
+            display: flex;
+            justify-content: space-around;
+            padding-top: 10px;
+            padding-bottom: env(safe-area-inset-bottom);
+            border-radius: 20px 20px 0 0;
+        }
+        .nav-item {
+            color: white;
+            text-align: center;
+            font-size: 0.65rem;
+        }
+        .nav-item i { font-size: 24px; display: block; margin-bottom: 5px; }
+
+        /* --- 2. 学生証（スライドオーバー） --- */
+        .id-card-view {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: white;
+            z-index: 100;
+            transform: translateY(100%);
+            transition: transform 0.4s cubic-bezier(0.3, 0, 0.2, 1);
+            overflow-y: auto;
+        }
+        .id-card-view.open { transform: translateY(0); }
+
+        .id-header {
+            background-color: var(--tu-purple);
+            padding: 60px 20px 30px;
+            color: white;
+            border-radius: 0 0 30px 30px;
+            position: relative;
+        }
+        .drag-handle {
+            width: 40px;
+            height: 5px;
+            background: rgba(255,255,255,0.3);
+            border-radius: 10px;
+            position: absolute;
+            top: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .profile-container {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .id-photo {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            border: 3px solid white;
+            background: #eee;
+            object-fit: cover;
+        }
+
+        .qr-area {
+            text-align: center;
+            padding: 30px 0;
+        }
+        .qr-wrap {
+            padding: 15px;
+            background: white;
+            display: inline-block;
+            border: 1px solid #eee;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        }
+
+        .info-table {
+            width: 90%;
+            margin: 0 auto;
+            border-collapse: collapse;
+        }
+        .info-table th {
+            text-align: left;
+            color: var(--tu-purple);
+            font-size: 0.75rem;
+            padding: 10px 0;
+            border-bottom: 1px solid #f0f0f0;
+            width: 40%;
+        }
+        .info-table td {
+            font-size: 0.85rem;
+            padding: 10px 0;
+            border-bottom: 1px solid #f0f0f0;
+            font-weight: 500;
+        }
+
+        /* 追記された証明文エリア */
+        .legal-text {
+            width: 85%;
+            margin: 30px auto;
+            font-size: 0.7rem;
+            line-height: 1.5;
+            color: #444;
+        }
+        .notes {
+            background: #f8f8f8;
+            padding: 20px;
+            font-size: 0.65rem;
+            color: #666;
+            margin-top: 20px;
+        }
+
+        /* --- 3. 編集画面（モーダル） --- */
+        .editor-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: white;
+            z-index: 500;
+            display: none;
+            overflow-y: auto;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .editor-overlay h2 { color: var(--tu-purple); margin-top: 40px; }
+        .edit-group { margin-bottom: 15px; }
+        .edit-group label { display: block; font-size: 0.8rem; margin-bottom: 5px; color: #666; }
+        .edit-group input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 8px; font-size: 1rem; }
+
+        .btn-save {
+            background: var(--tu-purple);
+            color: white;
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            font-weight: bold;
+            margin-top: 20px;
+        }
+
+        /* 編集ボタンの配置 */
+        .config-btn {
+            position: fixed;
+            right: 20px;
+            bottom: 110px;
+            background: #333;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 30px;
+            font-size: 0.8rem;
+            z-index: 10;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="portal">
+        <div class="portal-header">
+            <div class="user-meta">
+                <div class="tu-logo-icon">TOHOKU<br>UNIVERSITY</div>
+                <div class="user-text">
+                    <b id="p-name">磯部 遼太朗 さん</b>
+                    <p id="p-sub">学部1年生 , 工学部</p>
+                </div>
+            </div>
+            <div class="id-btn" onclick="openID()">
+                <img src="https://cdn-icons-png.flaticon.com/512/241/241528.png" alt="ID">
+                <span>学生証/職員証</span>
+            </div>
+        </div>
+
+        <div class="tabs">
+            <div class="tab active">ホーム - 学生用</div>
+            <div class="tab">Life Guide</div>
+        </div>
+
+        <div class="section-header">
+            <h3>大学からのお知らせ</h3>
+            <div class="more-btn">MORE ＞</div>
+        </div>
+        <div class="empty-state">
+            <img src="https://cdn-icons-png.flaticon.com/512/747/747376.png" alt="none">
+            <p>配信されているお知らせはありません</p>
+        </div>
+
+        <div class="section-header">
+            <h3>未読のお知らせ</h3>
+            <div class="more-btn">MORE ＞</div>
+        </div>
+        <div class="empty-state">
+            <p>未読のお知らせはありません</p>
+        </div>
+
+        <div class="bottom-nav">
+            <div class="nav-item"><i>📰</i>お知らせ</div>
+            <div class="nav-item"><i>📊</i>アンケート</div>
+            <div class="nav-item"><i>📅</i>学年暦</div>
+            <div class="nav-item"><i>📖</i>授業情報</div>
+            <div class="nav-item"><i>📍</i>マップ</div>
+        </div>
+    </div>
+
+    <button class="config-btn" onclick="openEditor()">情報を編集する</button>
+
+    <div class="id-card-view" id="idCard">
+        <div class="id-header" onclick="closeID()">
+            <div class="drag-handle"></div>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-size: 1.3rem; font-weight: bold; letter-spacing: 1px;">東北大学</span>
+                <span style="font-size: 0.8rem; opacity: 0.9;">スマホ学生証</span>
+            </div>
+            <div class="profile-container">
+                <img src="https://via.placeholder.com/150" id="id-view-photo" class="id-photo" alt="Face">
+                <div>
+                    <div id="v-id-num" style="font-size: 0.9rem; letter-spacing: 1px;">A9LB9999</div>
+                    <div id="v-name" style="font-size: 1.4rem; font-weight: bold; margin-top: 5px;">宮城野 萩子</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="qr-area">
+            <div style="font-size: 0.75rem; color: var(--tu-purple); font-weight: bold; margin-bottom: 8px;">スマホ学生証QR</div>
+            <div class="qr-wrap">
+                <img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=TOHOKU-A9LB9999" id="v-qr" alt="QR">
+            </div>
+        </div>
+
+        <table class="info-table">
+            <tr><th>学籍番号 / Student ID</th><td id="v-id2">A9LB9999</td></tr>
+            <tr><th>所属 / Course</th><td id="v-dept">文学部 文学研究科</td></tr>
+            <tr><th>入学年月日 / Date of Admission</th><td id="v-adm">2009/04/01</td></tr>
+            <tr><th>フリガナ / Furigana</th><td id="v-kana">ミヤギノ ハギコ</td></tr>
+            <tr><th>氏名 / Name</th><td id="v-name2">宮城野 萩子</td></tr>
+            <tr><th>生年月日 / Date of Birth</th><td id="v-birth">1989/04/01</td></tr>
+            <tr><th>発行日</th><td id="v-issue">2024/04/01</td></tr>
+            <tr><th>有効期限</th><td id="v-expiry">2028/03/31</td></tr>
+        </table>
+
+        <div class="legal-text">
+            上記のものは本学の学生であることを証明する<br>
+            <span style="font-size: 0.6rem; color: #888;">The above person certifies that he/she is a student of the University.</span><br><br>
+            ただし、顔写真が表記されてない場合は無効。<br>
+            <span style="font-size: 0.6rem; color: #888;">However, this certificate is invalid if a facial photograph is not displayed.</span>
+            
+            <div style="margin-top: 20px;">
+                仙台市青葉区片平二丁目1-1<br>
+                <strong>東北大学総長</strong><br>
+                <span style="font-size: 0.6rem;">1-1, Katahira 2-chome, Aoba-ku, Sendai City President of Tohoku University</span>
+            </div>
+        </div>
+
+        <div class="notes">
+            <strong>【注意事項】</strong><br>
+            ・この証は、常に携帯し、通学定期乗車券又は学生割引乗車券によって乗車船する場合に係員の請求があったとき又は本学関係者から請求があったときは、提示してください。<br>
+            ・この証は、他人に貸与し又は譲渡することはできません。<br><br>
+            <strong>【Note that】</strong><br>
+            ・This identification card must be carried at all times... (以下略)
+        </div>
+    </div>
+
+    <div class="editor-overlay" id="editor">
+        <h2>情報編集</h2>
+        <div class="edit-group">
+            <label>顔写真URL (正方形を推奨)</label>
+            <input type="text" id="i-photo" value="https://via.placeholder.com/150">
+        </div>
+        <div class="edit-group">
+            <label>氏名</label>
+            <input type="text" id="i-name" value="宮城野 萩子">
+        </div>
+        <div class="edit-group">
+            <label>学籍番号</label>
+            <input type="text" id="i-id" value="A9LB9999">
+        </div>
+        <div class="edit-group">
+            <label>所属</label>
+            <input type="text" id="i-dept" value="文学部 文学研究科">
+        </div>
+        <div class="edit-group">
+            <label>入学年月日</label>
+            <input type="text" id="i-adm" value="2009/04/01">
+        </div>
+        <div class="edit-group">
+            <label>フリガナ</label>
+            <input type="text" id="i-kana" value="ミヤギノ ハギコ">
+        </div>
+        <div class="edit-group">
+            <label>生年月日</label>
+            <input type="text" id="i-birth" value="1989/04/01">
+        </div>
+        <div class="edit-group">
+            <label>発行日</label>
+            <input type="text" id="i-issue" value="2024/04/01">
+        </div>
+        <div class="edit-group">
+            <label>有効期限</label>
+            <input type="text" id="i-expiry" value="2028/03/31">
+        </div>
+        <button class="btn-save" onclick="saveInfo()">保存して閉じる</button>
+    </div>
+
+    <script>
+        function openID() {
+            document.getElementById('idCard').classList.add('open');
+        }
+        function closeID() {
+            document.getElementById('idCard').classList.remove('open');
+        }
+        function openEditor() {
+            document.getElementById('editor').style.display = 'block';
+        }
+
+        function saveInfo() {
+            // 入力値を取得
+            const name = document.getElementById('i-name').value;
+            const id = document.getElementById('i-id').value;
+            const photo = document.getElementById('i-photo').value;
+            const dept = document.getElementById('i-dept').value;
+
+            // ポータル画面に反映
+            document.getElementById('p-name').innerText = name + " さん";
+            document.getElementById('p-sub').innerText = "学部1年生 , " + dept.split(' ')[0];
+
+            // 学生証画面に反映
+            document.getElementById('v-name').innerText = name;
+            document.getElementById('v-name2').innerText = name;
+            document.getElementById('v-id-num').innerText = id;
+            document.getElementById('v-id2').innerText = id;
+            document.getElementById('v-dept').innerText = dept;
+            document.getElementById('id-view-photo').src = photo;
+            document.getElementById('v-adm').innerText = document.getElementById('i-adm').value;
+            document.getElementById('v-kana').innerText = document.getElementById('i-kana').value;
+            document.getElementById('v-birth').innerText = document.getElementById('i-birth').value;
+            document.getElementById('v-issue').innerText = document.getElementById('i-issue').value;
+            document.getElementById('v-expiry').innerText = document.getElementById('i-expiry').value;
+
+            // QRコード更新（簡易）
+            document.getElementById('v-qr').src = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=TOHOKU-${id}`;
+
+            document.getElementById('editor').style.display = 'none';
+        }
+    </script>
+</body>
+</html>
